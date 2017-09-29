@@ -1,0 +1,29 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.metismenu {
+    animation-delay: .15s;
+}
+
+.mini-navbar .nav-second-level[data-v-cb6ded58]:not(.in) {
+  opacity: 0;
+}
+.nav-second-level[data-v-cb6ded58] {
+  max-height: 0;
+  transition: max-height .5s;
+  overflow: hidden;
+}
+.nav-second-level.in[data-v-cb6ded58] {
+    max-height: 200px;
+}

@@ -1,0 +1,40 @@
+[
+  {
+    "label": "Home",
+    "icon": "edit",
+    "to": {"name": "home"}
+  },
+  {
+    "label": "Many",
+    "icon": "address-card",
+    "children": [
+      {
+        "label": "SubDirectory",
+        "to": "/clients2"
+      },
+      {
+        "label": "SubDirectory",
+        "to": "/clients3"
+      }
+    ]
+  },
+  {
+    "label": "Even more",
+    "icon": "id-card",
+    "children": [
+      {
+        "label": "SubItem",
+        "to": "/clients7"
+      },
+      {
+        "label": "SubItem",
+        "to": "/clients5"
+      }
+    ]
+  },
+  {
+    "label": "Clients",
+    "icon": "th-large",
+    "to": {"name": "clients"}
+  }
+]
