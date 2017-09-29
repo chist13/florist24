@@ -25,7 +25,3 @@ Vue.directive('editable', editable)
 /**
  * filters
  */
-
-/**
- * mixins
- */

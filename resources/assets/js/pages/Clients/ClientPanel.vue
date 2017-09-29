@@ -1,5 +1,5 @@
 <template lang="pug">
-    .ibox(v-if="hasUser"): .ibox-content(ref="wrapper" v-animate:fadeInRight="")
+    .ibox(v-if="hasUser"): .ibox-content(ref="wrapper")
         .tab-content
             #contact-1.tab-pane.active
                 .row.m-b-lg
@@ -44,17 +44,28 @@
 <script>
     import Component from 'vue-class-component'
     import Vue from 'vue'
-    import { animateCSS } from '../../functions'
+
+    import animatable from '../../mixins/animatable'
 
     @Component({
         props: ['user'],
         watch: {
             user(val) {
-                this.animate()
+                this.$nextTick(() => {
+                    this.animate(this.wrapper, 'fadeInRight', {
+                        callback: node => {
+                            console.log(node, 'foo')
+                        }
+                    })
+                })
             }
-        }
+        },
+        mixins: [animatable]
     })
     export default class ClientPanel extends Vue {
+        get wrapper() {
+            return this.$refs.wrapper
+        }
         get hasUser() {
             return Object.keys(this.user).length !== 0 || this.user.constructor !== Object
         }
@@ -69,20 +80,6 @@
                 timeout: 2000,
                 pauseOnHover: true
             })
-        }
-
-        animate() {
-            const element = this.$refs.wrapper
-
-            // should we ?
-            if (!element) { return }
-
-            // reset animation
-            element.classList.remove('animated', 'fadeInRight')
-            void element.offsetWidth;
-
-            // start animation
-            animateCSS(element, 'fadeInRight')
         }
     }
 </script>
