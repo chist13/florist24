@@ -1,6 +1,6 @@
 require('laravel-mix')
 
-	.browserSync('http://0.0.0.0:8000/')
+	.browserSync('http://127.0.0.1:8000/')
 
     .js('resources/assets/js/app.js', 'public/js/')
 

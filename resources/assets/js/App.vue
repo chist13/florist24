@@ -1,28 +1,33 @@
 <template>
-    <div id="app">
+	<div id="app">
 
-        <layout>
-            <transition name="page" mode="out-in">
-                <keep-alive>
-                    <router-view></router-view>
-                </keep-alive>
-            </transition>
-        </layout>
+		<layout>
+			<transition name="page" mode="out-in">
+				<keep-alive>
+					<router-view></router-view>
+				</keep-alive>
+			</transition>
+		</layout>
 
-        <vue-snotify></vue-snotify>
+		<vue-snotify></vue-snotify>
 
-    </div>
+	</div>
 </template>
 
 <script>
-    import Layout from './layouts/Default'
+	import Component from 'vue-class-component'
+	import Vue from 'vue'
 
-    export default {
-        components: {
-            'layout': Layout
-        },
-        mounted() {
-            setTimeout(n => document.body.classList.add('pace-done'), 200)
-        }
-    }
+	import Layout from './layouts/Default'
+
+	@Component({
+		components: {
+			'layout': Layout
+		}
+	})
+	export default class App extends Vue {
+		mounted() {
+			setTimeout(n => document.body.classList.add('pace-done'), 200)
+		}
+	}
 </script>

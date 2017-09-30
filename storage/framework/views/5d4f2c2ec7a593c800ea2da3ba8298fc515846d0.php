@@ -8,9 +8,9 @@
 
     <script async src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
 
-    <link rel="stylesheet" href="{!! asset('css/vendor.css') !!}" />
-    <link rel="stylesheet" href="{!! asset('css/app.css') !!}" />
-    <link rel="stylesheet" href="{!! asset('vue-styles.css') !!}" />
+    <link rel="stylesheet" href="<?php echo asset('css/vendor.css'); ?>" />
+    <link rel="stylesheet" href="<?php echo asset('css/app.css'); ?>" />
+    <link rel="stylesheet" href="<?php echo asset('vue-styles.css'); ?>" />
 
     <style>
         .ibox {
@@ -188,7 +188,7 @@
             animation: snotify-async .6s steps(8) infinite;
         }
 
-        @keyframes snotify-async {
+        @keyframes  snotify-async {
             from {
                 transform: rotate(0)
             }
@@ -257,6 +257,6 @@
 <body>
     <div id="app"></div>
 
-    <script defer src="{!! asset('js/app.js') !!}"></script>
+    <script defer src="<?php echo asset('js/app.js'); ?>"></script>
 </body>
 </html>

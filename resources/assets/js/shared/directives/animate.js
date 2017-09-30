@@ -1,45 +1,55 @@
 const eventNames = ['webkitAnimationEnd', 'mozAnimationEnd', 'MSAnimationEnd', 'oanimationend', 'animationend']
 
-export default function(el, binding) {
-    /**
-    * collect classes and styles
-    */
-    let styles = {}
+export default {
+	update(el, binding) {
+		/**
+		 * reset previous animation
+		 */
+		if (el.classList.contains('animated')) {
+			el.classList.remove('animated', binding.arg)
+			void el.offsetWidth
+		}
 
-    if (binding.hasOwnProperty('value')) {
-        if (binding.value.hasOwnProperty('delay'))
-            styles['-webkit-animation-delay'] = styles['animation-delay'] = binding.value.delay
-        if (binding.value.hasOwnProperty('duration'))
-            styles['-webkit-animation-duration'] = styles['animation-duration'] = binding.value.duration
-    }
+		/**
+		* collect classes and styles
+		*/
+		let styles = {}
 
-    let classes = ['animated', binding.arg, ...Object.keys(binding.modifiers)]
+		if (binding.hasOwnProperty('value')) {
+			if (binding.value.hasOwnProperty('delay'))
+				styles['-webkit-animation-delay'] = styles['animation-delay'] = binding.value.delay
+			if (binding.value.hasOwnProperty('duration'))
+				styles['-webkit-animation-duration'] = styles['animation-duration'] = binding.value.duration
+		}
 
-    /**
-    * insert classes and styles
-    */
-    el.classList.add(...classes)
+		let classes = ['animated', binding.arg, ...Object.keys(binding.modifiers)]
 
-    for(const name in styles) {
-        el.style[name] = styles[name]
-    }
+		/**
+		* insert classes and styles
+		*/
+		el.classList.add(...classes)
 
-    /**
-    * trigger only once
-    */
-    eventNames.forEach(eventName => {
-        el.addEventListener(eventName, function func() {
-            /**
-            * remove classes and styles
-            */
-            el.classList.remove(...classes)
+		for(const name in styles) {
+			el.style[name] = styles[name]
+		}
 
-            for(const name in styles) {
-                el.style[name] = ''
-            }
+		/**
+		* trigger only once
+		*/
+		eventNames.forEach(eventName => {
+			el.addEventListener(eventName, function func() {
+				/**
+				* remove classes and styles
+				*/
+				el.classList.remove(...classes)
 
-            // required by once event
-            el.removeEventListener(eventName, func)
-        })
-    })
+				for(const name in styles) {
+					el.style[name] = ''
+				}
+
+				// required by once event
+				el.removeEventListener(eventName, func)
+			})
+		})
+	}
 }
