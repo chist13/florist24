@@ -14,7 +14,22 @@ class ClientApiController extends Controller
      */
     public function index()
     {
-        return Client::paginate(5);
+        $query = \DB::table('clients');
+
+        if (request()->has('q')) {
+            $query
+                ->where('name', 'like', '%' . request('q') . '%')
+                ->orWhere('nickname', 'like', '%' . request('q') . '%');
+        }
+
+        if (request()->has('sort')) {
+            $sortParam = explode('|', request('sort'));
+
+            $query
+                ->orderBy($sortParam[0], $sortParam[1]);
+        }
+
+        return $query->paginate(request()->has('paginate') ? request('paginate') : 5);
     }
 
     /**

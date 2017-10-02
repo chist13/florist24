@@ -6,11 +6,12 @@
 				thead
 					tr
 						template(v-for="field in tableFields")
-							th(v-if="field.sortField" @click.prevent="sort(field)").sortable
-								| {{ field.title }}
-								i(v-if="field.sort === 'desc'").fa.pull-right.fa-sort-desc
-								i(v-else-if="field.sort === 'asc'").fa.pull-right.fa-sort-asc
-								i(v-else='').fa.pull-right.fa-sort
+							th(v-if="field.sortField" @click.prevent="sort(field)")
+								.sortable
+									| {{ field.title }}
+									i(v-if="field.sort === 'desc'").fa.pull-right.fa-sort-desc
+									i(v-else-if="field.sort === 'asc'").fa.pull-right.fa-sort-asc
+									i(v-else='').fa.pull-right.fa-sort
 
 							th(v-else="") {{ field.title }}
 
@@ -26,6 +27,7 @@
 
 		pagination(
 			v-if="hasPagination"
+			ref="pagination"
 			:meta="tableMeta"
 			@pageChanged="pageChanged"
 		)
@@ -100,6 +102,13 @@
 			Object.assign(props, this.params)
 
 			this.$store.dispatch(`${this.store}/${this.storePath}`, props)
+		}
+
+		/**
+		 * update witout changing the page
+		 */
+		refresh() {
+			this.update({page: this.$refs.pagination.current})
 		}
 
 		/**

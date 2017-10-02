@@ -1,14 +1,353 @@
 webpackJsonp([0],{
 
-/***/ 219:
+/***/ 113:
+/***/ (function(module, exports) {
+
+/**
+ * Translates the list format produced by css-loader into something
+ * easier to manipulate.
+ */
+module.exports = function listToStyles (parentId, list) {
+  var styles = []
+  var newStyles = {}
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i]
+    var id = item[0]
+    var css = item[1]
+    var media = item[2]
+    var sourceMap = item[3]
+    var part = {
+      id: parentId + ':' + i,
+      css: css,
+      media: media,
+      sourceMap: sourceMap
+    }
+    if (!newStyles[id]) {
+      styles.push(newStyles[id] = { id: id, parts: [part] })
+    } else {
+      newStyles[id].parts.push(part)
+    }
+  }
+  return styles
+}
+
+
+/***/ }),
+
+/***/ 239:
+/***/ (function(module, exports) {
+
+/*
+	MIT License http://www.opensource.org/licenses/mit-license.php
+	Author Tobias Koppers @sokra
+*/
+// css base code, injected by the css-loader
+module.exports = function(useSourceMap) {
+	var list = [];
+
+	// return the list of modules as css string
+	list.toString = function toString() {
+		return this.map(function (item) {
+			var content = cssWithMappingToString(item, useSourceMap);
+			if(item[2]) {
+				return "@media " + item[2] + "{" + content + "}";
+			} else {
+				return content;
+			}
+		}).join("");
+	};
+
+	// import a list of modules into the list
+	list.i = function(modules, mediaQuery) {
+		if(typeof modules === "string")
+			modules = [[null, modules, ""]];
+		var alreadyImportedModules = {};
+		for(var i = 0; i < this.length; i++) {
+			var id = this[i][0];
+			if(typeof id === "number")
+				alreadyImportedModules[id] = true;
+		}
+		for(i = 0; i < modules.length; i++) {
+			var item = modules[i];
+			// skip already imported module
+			// this implementation is not 100% perfect for weird media query combinations
+			//  when a module is imported multiple times with different media queries.
+			//  I hope this will never occur (Hey this way we have smaller bundles)
+			if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
+				if(mediaQuery && !item[2]) {
+					item[2] = mediaQuery;
+				} else if(mediaQuery) {
+					item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
+				}
+				list.push(item);
+			}
+		}
+	};
+	return list;
+};
+
+function cssWithMappingToString(item, useSourceMap) {
+	var content = item[1] || '';
+	var cssMapping = item[3];
+	if (!cssMapping) {
+		return content;
+	}
+
+	if (useSourceMap && typeof btoa === 'function') {
+		var sourceMapping = toComment(cssMapping);
+		var sourceURLs = cssMapping.sources.map(function (source) {
+			return '/*# sourceURL=' + cssMapping.sourceRoot + source + ' */'
+		});
+
+		return [content].concat(sourceURLs).concat([sourceMapping]).join('\n');
+	}
+
+	return [content].join('\n');
+}
+
+// Adapted from convert-source-map (MIT)
+function toComment(sourceMap) {
+	// eslint-disable-next-line no-undef
+	var base64 = btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))));
+	var data = 'sourceMappingURL=data:application/json;charset=utf-8;base64,' + base64;
+
+	return '/*# ' + data + ' */';
+}
+
+
+/***/ }),
+
+/***/ 240:
+/***/ (function(module, exports, __webpack_require__) {
+
+/*
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+  Modified by Evan You @yyx990803
+*/
+
+var hasDocument = typeof document !== 'undefined'
+
+if (typeof DEBUG !== 'undefined' && DEBUG) {
+  if (!hasDocument) {
+    throw new Error(
+    'vue-style-loader cannot be used in a non-browser environment. ' +
+    "Use { target: 'node' } in your Webpack config to indicate a server-rendering environment."
+  ) }
+}
+
+var listToStyles = __webpack_require__(113)
+
+/*
+type StyleObject = {
+  id: number;
+  parts: Array<StyleObjectPart>
+}
+
+type StyleObjectPart = {
+  css: string;
+  media: string;
+  sourceMap: ?string
+}
+*/
+
+var stylesInDom = {/*
+  [id: number]: {
+    id: number,
+    refs: number,
+    parts: Array<(obj?: StyleObjectPart) => void>
+  }
+*/}
+
+var head = hasDocument && (document.head || document.getElementsByTagName('head')[0])
+var singletonElement = null
+var singletonCounter = 0
+var isProduction = false
+var noop = function () {}
+
+// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
+// tags it will allow on a page
+var isOldIE = typeof navigator !== 'undefined' && /msie [6-9]\b/.test(navigator.userAgent.toLowerCase())
+
+module.exports = function (parentId, list, _isProduction) {
+  isProduction = _isProduction
+
+  var styles = listToStyles(parentId, list)
+  addStylesToDom(styles)
+
+  return function update (newList) {
+    var mayRemove = []
+    for (var i = 0; i < styles.length; i++) {
+      var item = styles[i]
+      var domStyle = stylesInDom[item.id]
+      domStyle.refs--
+      mayRemove.push(domStyle)
+    }
+    if (newList) {
+      styles = listToStyles(parentId, newList)
+      addStylesToDom(styles)
+    } else {
+      styles = []
+    }
+    for (var i = 0; i < mayRemove.length; i++) {
+      var domStyle = mayRemove[i]
+      if (domStyle.refs === 0) {
+        for (var j = 0; j < domStyle.parts.length; j++) {
+          domStyle.parts[j]()
+        }
+        delete stylesInDom[domStyle.id]
+      }
+    }
+  }
+}
+
+function addStylesToDom (styles /* Array<StyleObject> */) {
+  for (var i = 0; i < styles.length; i++) {
+    var item = styles[i]
+    var domStyle = stylesInDom[item.id]
+    if (domStyle) {
+      domStyle.refs++
+      for (var j = 0; j < domStyle.parts.length; j++) {
+        domStyle.parts[j](item.parts[j])
+      }
+      for (; j < item.parts.length; j++) {
+        domStyle.parts.push(addStyle(item.parts[j]))
+      }
+      if (domStyle.parts.length > item.parts.length) {
+        domStyle.parts.length = item.parts.length
+      }
+    } else {
+      var parts = []
+      for (var j = 0; j < item.parts.length; j++) {
+        parts.push(addStyle(item.parts[j]))
+      }
+      stylesInDom[item.id] = { id: item.id, refs: 1, parts: parts }
+    }
+  }
+}
+
+function createStyleElement () {
+  var styleElement = document.createElement('style')
+  styleElement.type = 'text/css'
+  head.appendChild(styleElement)
+  return styleElement
+}
+
+function addStyle (obj /* StyleObjectPart */) {
+  var update, remove
+  var styleElement = document.querySelector('style[data-vue-ssr-id~="' + obj.id + '"]')
+
+  if (styleElement) {
+    if (isProduction) {
+      // has SSR styles and in production mode.
+      // simply do nothing.
+      return noop
+    } else {
+      // has SSR styles but in dev mode.
+      // for some reason Chrome can't handle source map in server-rendered
+      // style tags - source maps in <style> only works if the style tag is
+      // created and inserted dynamically. So we remove the server rendered
+      // styles and inject new ones.
+      styleElement.parentNode.removeChild(styleElement)
+    }
+  }
+
+  if (isOldIE) {
+    // use singleton mode for IE9.
+    var styleIndex = singletonCounter++
+    styleElement = singletonElement || (singletonElement = createStyleElement())
+    update = applyToSingletonTag.bind(null, styleElement, styleIndex, false)
+    remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true)
+  } else {
+    // use multi-style-tag mode in all other cases
+    styleElement = createStyleElement()
+    update = applyToTag.bind(null, styleElement)
+    remove = function () {
+      styleElement.parentNode.removeChild(styleElement)
+    }
+  }
+
+  update(obj)
+
+  return function updateStyle (newObj /* StyleObjectPart */) {
+    if (newObj) {
+      if (newObj.css === obj.css &&
+          newObj.media === obj.media &&
+          newObj.sourceMap === obj.sourceMap) {
+        return
+      }
+      update(obj = newObj)
+    } else {
+      remove()
+    }
+  }
+}
+
+var replaceText = (function () {
+  var textStore = []
+
+  return function (index, replacement) {
+    textStore[index] = replacement
+    return textStore.filter(Boolean).join('\n')
+  }
+})()
+
+function applyToSingletonTag (styleElement, index, remove, obj) {
+  var css = remove ? '' : obj.css
+
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = replaceText(index, css)
+  } else {
+    var cssNode = document.createTextNode(css)
+    var childNodes = styleElement.childNodes
+    if (childNodes[index]) styleElement.removeChild(childNodes[index])
+    if (childNodes.length) {
+      styleElement.insertBefore(cssNode, childNodes[index])
+    } else {
+      styleElement.appendChild(cssNode)
+    }
+  }
+}
+
+function applyToTag (styleElement, obj) {
+  var css = obj.css
+  var media = obj.media
+  var sourceMap = obj.sourceMap
+
+  if (media) {
+    styleElement.setAttribute('media', media)
+  }
+
+  if (sourceMap) {
+    // https://developer.chrome.com/devtools/docs/javascript-debugging
+    // this makes source maps inside style tags work properly in Chrome
+    css += '\n/*# sourceURL=' + sourceMap.sources[0] + ' */'
+    // http://stackoverflow.com/a/26603875
+    css += '\n/*# sourceMappingURL=data:application/json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + ' */'
+  }
+
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = css
+  } else {
+    while (styleElement.firstChild) {
+      styleElement.removeChild(styleElement.firstChild)
+    }
+    styleElement.appendChild(document.createTextNode(css))
+  }
+}
+
+
+/***/ }),
+
+/***/ 241:
 /***/ (function(module, exports, __webpack_require__) {
 
 var disposed = false
 var normalizeComponent = __webpack_require__(5)
 /* script */
-var __vue_script__ = __webpack_require__(222)
+var __vue_script__ = __webpack_require__(244)
 /* template */
-var __vue_template__ = __webpack_require__(237)
+var __vue_template__ = __webpack_require__(255)
 /* styles */
 var __vue_styles__ = null
 /* scopeId */
@@ -47,15 +386,15 @@ module.exports = Component.exports
 
 /***/ }),
 
-/***/ 220:
+/***/ 242:
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(223);
+module.exports = __webpack_require__(245);
 
 
 /***/ }),
 
-/***/ 221:
+/***/ 243:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63,7 +402,7 @@ module.exports = __webpack_require__(223);
 
 exports.__esModule = true;
 
-var _promise = __webpack_require__(81);
+var _promise = __webpack_require__(84);
 
 var _promise2 = _interopRequireDefault(_promise);
 
@@ -100,7 +439,7 @@ exports.default = function (fn) {
 
 /***/ }),
 
-/***/ 222:
+/***/ 244:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -111,31 +450,31 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = undefined;
 
-var _regenerator = __webpack_require__(220);
+var _regenerator = __webpack_require__(242);
 
 var _regenerator2 = _interopRequireDefault(_regenerator);
 
-var _asyncToGenerator2 = __webpack_require__(221);
+var _asyncToGenerator2 = __webpack_require__(243);
 
 var _asyncToGenerator3 = _interopRequireDefault(_asyncToGenerator2);
 
-var _getPrototypeOf = __webpack_require__(14);
+var _getPrototypeOf = __webpack_require__(11);
 
 var _getPrototypeOf2 = _interopRequireDefault(_getPrototypeOf);
 
-var _classCallCheck2 = __webpack_require__(9);
+var _classCallCheck2 = __webpack_require__(7);
 
 var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
 
-var _createClass2 = __webpack_require__(17);
+var _createClass2 = __webpack_require__(14);
 
 var _createClass3 = _interopRequireDefault(_createClass2);
 
-var _possibleConstructorReturn2 = __webpack_require__(15);
+var _possibleConstructorReturn2 = __webpack_require__(12);
 
 var _possibleConstructorReturn3 = _interopRequireDefault(_possibleConstructorReturn2);
 
-var _inherits2 = __webpack_require__(16);
+var _inherits2 = __webpack_require__(13);
 
 var _inherits3 = _interopRequireDefault(_inherits2);
 
@@ -180,7 +519,7 @@ var _dec, _class; //
 //
 //
 
-var _vueClassComponent = __webpack_require__(24);
+var _vueClassComponent = __webpack_require__(21);
 
 var _vueClassComponent2 = _interopRequireDefault(_vueClassComponent);
 
@@ -188,11 +527,11 @@ var _vue = __webpack_require__(0);
 
 var _vue2 = _interopRequireDefault(_vue);
 
-var _ClientPanel = __webpack_require__(225);
+var _ClientPanel = __webpack_require__(247);
 
 var _ClientPanel2 = _interopRequireDefault(_ClientPanel);
 
-var _ClientModal = __webpack_require__(232);
+var _ClientModal = __webpack_require__(250);
 
 var _ClientModal2 = _interopRequireDefault(_ClientModal);
 
@@ -235,21 +574,23 @@ var Clients = (_dec = (0, _vueClassComponent2.default)({
 							case 3:
 
 								this.$snotify.success('Deleted was successful', 'Try once more!', { timeout: 2000 });
-								_context.next = 9;
+
+								this.$refs.table.refresh();
+								_context.next = 10;
 								break;
 
-							case 6:
-								_context.prev = 6;
+							case 7:
+								_context.prev = 7;
 								_context.t0 = _context['catch'](0);
 
 								this.$snotify.error('Something is wrong', 'Try reload the page', { timeout: 4000, pauseOnHover: true });
 
-							case 9:
+							case 10:
 							case 'end':
 								return _context.stop();
 						}
 					}
-				}, _callee, this, [[0, 6]]);
+				}, _callee, this, [[0, 7]]);
 			}));
 
 			function destroy(_x) {
@@ -265,7 +606,7 @@ exports.default = Clients;
 
 /***/ }),
 
-/***/ 223:
+/***/ 245:
 /***/ (function(module, exports, __webpack_require__) {
 
 // This method of obtaining a reference to the global object needs to be
@@ -283,7 +624,7 @@ var oldRuntime = hadRuntime && g.regeneratorRuntime;
 // Force reevalutation of runtime.js.
 g.regeneratorRuntime = undefined;
 
-module.exports = __webpack_require__(224);
+module.exports = __webpack_require__(246);
 
 if (hadRuntime) {
   // Restore the original runtime.
@@ -300,7 +641,7 @@ if (hadRuntime) {
 
 /***/ }),
 
-/***/ 224:
+/***/ 246:
 /***/ (function(module, exports) {
 
 /**
@@ -1037,15 +1378,15 @@ if (hadRuntime) {
 
 /***/ }),
 
-/***/ 225:
+/***/ 247:
 /***/ (function(module, exports, __webpack_require__) {
 
 var disposed = false
 var normalizeComponent = __webpack_require__(5)
 /* script */
-var __vue_script__ = __webpack_require__(226)
+var __vue_script__ = __webpack_require__(248)
 /* template */
-var __vue_template__ = __webpack_require__(231)
+var __vue_template__ = __webpack_require__(249)
 /* styles */
 var __vue_styles__ = null
 /* scopeId */
@@ -1084,7 +1425,7 @@ module.exports = Component.exports
 
 /***/ }),
 
-/***/ 226:
+/***/ 248:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1095,39 +1436,39 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = undefined;
 
-var _keys = __webpack_require__(47);
+var _keys = __webpack_require__(48);
 
 var _keys2 = _interopRequireDefault(_keys);
 
-var _regenerator = __webpack_require__(220);
+var _regenerator = __webpack_require__(242);
 
 var _regenerator2 = _interopRequireDefault(_regenerator);
 
-var _assign = __webpack_require__(227);
+var _assign = __webpack_require__(85);
 
 var _assign2 = _interopRequireDefault(_assign);
 
-var _asyncToGenerator2 = __webpack_require__(221);
+var _asyncToGenerator2 = __webpack_require__(243);
 
 var _asyncToGenerator3 = _interopRequireDefault(_asyncToGenerator2);
 
-var _getPrototypeOf = __webpack_require__(14);
+var _getPrototypeOf = __webpack_require__(11);
 
 var _getPrototypeOf2 = _interopRequireDefault(_getPrototypeOf);
 
-var _classCallCheck2 = __webpack_require__(9);
+var _classCallCheck2 = __webpack_require__(7);
 
 var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
 
-var _createClass2 = __webpack_require__(17);
+var _createClass2 = __webpack_require__(14);
 
 var _createClass3 = _interopRequireDefault(_createClass2);
 
-var _possibleConstructorReturn2 = __webpack_require__(15);
+var _possibleConstructorReturn2 = __webpack_require__(12);
 
 var _possibleConstructorReturn3 = _interopRequireDefault(_possibleConstructorReturn2);
 
-var _inherits2 = __webpack_require__(16);
+var _inherits2 = __webpack_require__(13);
 
 var _inherits3 = _interopRequireDefault(_inherits2);
 
@@ -1175,7 +1516,7 @@ var _dec, _class; //
 //
 //
 
-var _vueClassComponent = __webpack_require__(24);
+var _vueClassComponent = __webpack_require__(21);
 
 var _vueClassComponent2 = _interopRequireDefault(_vueClassComponent);
 
@@ -1244,7 +1585,7 @@ exports.default = ClientPanel;
 
 /***/ }),
 
-/***/ 231:
+/***/ 249:
 /***/ (function(module, exports, __webpack_require__) {
 
 var render = function() {
@@ -1408,19 +1749,19 @@ if (false) {
 
 /***/ }),
 
-/***/ 232:
+/***/ 250:
 /***/ (function(module, exports, __webpack_require__) {
 
 var disposed = false
 function injectStyle (ssrContext) {
   if (disposed) return
-  __webpack_require__(233)
+  __webpack_require__(251)
 }
 var normalizeComponent = __webpack_require__(5)
 /* script */
-var __vue_script__ = __webpack_require__(235)
+var __vue_script__ = __webpack_require__(253)
 /* template */
-var __vue_template__ = __webpack_require__(236)
+var __vue_template__ = __webpack_require__(254)
 /* styles */
 var __vue_styles__ = injectStyle
 /* scopeId */
@@ -1459,17 +1800,17 @@ module.exports = Component.exports
 
 /***/ }),
 
-/***/ 233:
+/***/ 251:
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(234);
+var content = __webpack_require__(252);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var update = __webpack_require__(218)("36b975a5", content, false);
+var update = __webpack_require__(240)("36b975a5", content, false);
 // Hot Module Replacement
 if(false) {
  // When the styles change, update the <style> tags
@@ -1486,10 +1827,10 @@ if(false) {
 
 /***/ }),
 
-/***/ 234:
+/***/ 252:
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(217)(undefined);
+exports = module.exports = __webpack_require__(239)(undefined);
 // imports
 
 
@@ -1501,7 +1842,7 @@ exports.push([module.i, "", ""]);
 
 /***/ }),
 
-/***/ 235:
+/***/ 253:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1512,23 +1853,23 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = undefined;
 
-var _getPrototypeOf = __webpack_require__(14);
+var _getPrototypeOf = __webpack_require__(11);
 
 var _getPrototypeOf2 = _interopRequireDefault(_getPrototypeOf);
 
-var _classCallCheck2 = __webpack_require__(9);
+var _classCallCheck2 = __webpack_require__(7);
 
 var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
 
-var _createClass2 = __webpack_require__(17);
+var _createClass2 = __webpack_require__(14);
 
 var _createClass3 = _interopRequireDefault(_createClass2);
 
-var _possibleConstructorReturn2 = __webpack_require__(15);
+var _possibleConstructorReturn2 = __webpack_require__(12);
 
 var _possibleConstructorReturn3 = _interopRequireDefault(_possibleConstructorReturn2);
 
-var _inherits2 = __webpack_require__(16);
+var _inherits2 = __webpack_require__(13);
 
 var _inherits3 = _interopRequireDefault(_inherits2);
 
@@ -1563,7 +1904,7 @@ var _class; //
 //
 //
 
-var _vueClassComponent = __webpack_require__(24);
+var _vueClassComponent = __webpack_require__(21);
 
 var _vueClassComponent2 = _interopRequireDefault(_vueClassComponent);
 
@@ -1623,7 +1964,7 @@ exports.default = ClientModal;
 
 /***/ }),
 
-/***/ 236:
+/***/ 254:
 /***/ (function(module, exports, __webpack_require__) {
 
 var render = function() {
@@ -1795,7 +2136,7 @@ if (false) {
 
 /***/ }),
 
-/***/ 237:
+/***/ 255:
 /***/ (function(module, exports, __webpack_require__) {
 
 var render = function() {
@@ -1865,26 +2206,22 @@ var render = function() {
                         }
                       }
                     }),
-                    _vm._m(1)
-                  ]),
-                  _c(
-                    "div",
-                    { staticStyle: { margin: "20px 0" } },
-                    [
+                    _c("span", { staticClass: "input-group-btn" }, [
                       _c(
-                        "my-button",
+                        "button",
                         {
+                          staticClass: "btn btn-primary",
                           nativeOn: {
                             click: function($event) {
                               _vm.$refs.modal.toggle()
                             }
                           }
                         },
-                        [_vm._v("Create")]
+                        [_vm._v("create new")]
                       )
-                    ],
-                    1
-                  ),
+                    ])
+                  ]),
+                  _c("br"),
                   _c(
                     "vue-tabs",
                     [
@@ -1893,6 +2230,7 @@ var render = function() {
                         { attrs: { title: "My Table", icon: "fa fa-user" } },
                         [
                           _c("my-table", {
+                            ref: "table",
                             attrs: {
                               fields: _vm.fields,
                               store: "clients",
@@ -1964,9 +2302,13 @@ var render = function() {
                         ],
                         1
                       ),
-                      _c("v-tab", {
-                        attrs: { title: "nothing", icon: "fa fa-briefcase" }
-                      })
+                      _c(
+                        "v-tab",
+                        {
+                          attrs: { title: "nothing", icon: "fa fa-briefcase" }
+                        },
+                        [_c("small", [_vm._v("nothing")])]
+                      )
                     ],
                     1
                   )
@@ -1994,16 +2336,6 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("li", { staticClass: "active" }, [
       _c("strong", [_vm._v("Clients")])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("span", { staticClass: "input-group-btn" }, [
-      _c("button", { staticClass: "btn btn-primary" }, [
-        _c("i", { staticClass: "fa fa-search" }, [_vm._v("Search")])
-      ])
     ])
   }
 ]

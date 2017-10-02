@@ -15,14 +15,13 @@
 				.input-group
 					input.input.form-control(placeholder="Search client" v-model="search")
 					span.input-group-btn
-						button.btn.btn-primary: i.fa.fa-search Search
+						button(@click.native="$refs.modal.toggle()").btn.btn-primary create new
 
-				div(style="margin: 20px 0")
-					my-button(@click.native="$refs.modal.toggle()") Create
+				br
 
 				vue-tabs
 					v-tab(title="My Table" icon="fa fa-user")
-						my-table(:fields="fields" store="clients" ':params'="{q: search}")
+						my-table(:fields="fields" store="clients" ':params'="{q: search}" ref="table")
 							template(slot="name" scope="{item}")
 								a(@click.prevent="selected = item" href="#") {{item.name}}
 
@@ -33,6 +32,7 @@
 								my-button(@click.native="destroy(item.id)") destroy
 
 					v-tab(title="nothing" icon="fa fa-briefcase")
+						small nothing
 
 			.col-sm-4
 				client-panel(:user="selected")
@@ -69,6 +69,8 @@
 				await this.$store.dispatch('clients/destroy', id)
 
 				this.$snotify.success('Deleted was successful', 'Try once more!', {timeout: 2000})
+
+				this.$refs.table.refresh()
 			} catch (e) {
 				this.$snotify.error('Something is wrong', 'Try reload the page', {timeout: 4000, pauseOnHover: true})
 			}
