@@ -12,5 +12,13 @@ export default {
     },
     [types.UPDATE](state, user) {
         state.items.data = state.items.data.map(e => e.id === user.id ? user : e)
+    },
+    [types.SELECT](state, selected) {
+        state.selected = selected
+    },
+    [types.UPDATE_SELECTED](state, selected) {
+        state.selected = selected
+
+        state.items.data = state.items.data.map(e => e.id === selected.id ? selected : e)
     }
 }

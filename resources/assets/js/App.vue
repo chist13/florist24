@@ -1,17 +1,14 @@
-<template>
-	<div id="app">
+<template lang="pug">
+	#app
 
-		<layout>
-			<transition name="page" mode="out-in">
-				<keep-alive>
-					<router-view></router-view>
-				</keep-alive>
-			</transition>
-		</layout>
+		layout
+			transition(name="page" mode="out-in")
+				keep-alive
+					router-view
 
-		<vue-snotify></vue-snotify>
+		vue-snotify
 
-	</div>
+		calls
 </template>
 
 <script>
@@ -19,10 +16,12 @@
 	import Vue from 'vue'
 
 	import Layout from './layouts/Default'
+	import Calls from './components/calls/Calls'
 
 	@Component({
 		components: {
-			'layout': Layout
+			'layout': Layout,
+			'calls': Calls
 		}
 	})
 	export default class App extends Vue {

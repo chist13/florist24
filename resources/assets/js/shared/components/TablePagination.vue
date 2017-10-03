@@ -6,11 +6,16 @@
 		li(:class="{disabled: current === 1}")
 			a(href="#" @click.prevent="select(current - 1)"): i.fa.fa-lg.fa-angle-left
 
+		li(v-if="current > visible" @click="select(current - visible)"): a(href="#" @click.prevent="") ...
+
 		li(
 			v-for="index in meta.lastPage"
+			v-if="index > current - visible && index < current + visible"
 			:class="{disabled: current == index}"
 		)
 			a(href="#" @click.prevent="select(index)") {{index}}
+
+		li(v-if="lastPage - visible > current" @click="select(current + visible)"): a(href="#" @click.prevent="") ...
 
 		li(:class="{disabled: current === lastPage}")
 			a(href="#" @click.prevent="select(current + 1)"): i.fa.fa-lg.fa-angle-right
@@ -25,7 +30,8 @@
 
 	@Component({
 		props: {
-			meta: {require: true}
+			meta: {require: true},
+			visible: {}
 		}
 	})
 	export default class TablePagination extends Vue{
@@ -47,6 +53,7 @@
 <style lang="sass" scoped>
 	.table-pagination
 		display: flex
+		align-items: flex-end
 		list-style: none
 		margin-bottom: 0
 		padding-left: 0

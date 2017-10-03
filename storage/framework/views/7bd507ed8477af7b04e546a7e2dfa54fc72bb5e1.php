@@ -13,19 +13,24 @@
     <link rel="stylesheet" href="<?php echo asset('vue-styles.css'); ?>" />
 
     <style>
+        .ibox {
+            margin-bottom: 0 !important;
+        }
+
         .client-detail {
              height: initial;
         }
-        .list-enter-active, .list-leave-active {
-            transition: all 1s;
+
+        .list-enter-active {
+            transition: all .4s;
         }
         .list-enter {
-
-        }
-
-        .list-leave-to, .list-enter {
+            position: absolute;
             opacity: 0;
             transform: translateX(30px);
+        }
+        .list-leave-to {
+            display: none;
         }
 
         .my-gender >span {

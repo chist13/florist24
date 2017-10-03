@@ -5,8 +5,7 @@ import Client from '../../../proxies/clientProxy'
 
 export default {
 	all({commit}, params = {}) {
-		return new Client()
-			.setParameters(params)
+		return new Client(params)
 			.all()
 			.then(res => commit(types.ALL, Transformer.fetch(res)))
 	},
@@ -24,5 +23,10 @@ export default {
 		return new Client()
 			.update(user.id, user)
 			.then(res => commit(types.UPDATE, res))
+	},
+	updateSelected({commit}, selected) {
+		return new Client()
+			.update(selected.id, selected)
+			.then(res => commit(types.UPDATE_SELECTED, res))
 	}
 }

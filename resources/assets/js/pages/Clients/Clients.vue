@@ -15,15 +15,20 @@
 				.input-group
 					input.input.form-control(placeholder="Search client" v-model="search")
 					span.input-group-btn
-						button(@click.native="$refs.modal.toggle()").btn.btn-primary create new
+						button(@click="$refs.modal.toggle()").btn.btn-primary create new
 
 				br
 
 				vue-tabs
 					v-tab(title="My Table" icon="fa fa-user")
-						my-table(:fields="fields" store="clients" ':params'="{q: search}" ref="table")
+						my-table(
+							:fields="fields"
+							:search="search"
+							v-model="clients"
+							ref="table"
+						)
 							template(slot="name" scope="{item}")
-								a(@click.prevent="selected = item" href="#") {{item.name}}
+								a(@click.prevent="select(item)" href="#") {{item.name}}
 
 							template(slot="gender" scope="{item}")
 								span(:style="{color: item.gender === 'F' ? 'firebrick' : 'forestgreen'}") {{item.gender}}
@@ -32,10 +37,10 @@
 								my-button(@click.native="destroy(item.id)") destroy
 
 					v-tab(title="nothing" icon="fa fa-briefcase")
-						small nothing
+						| nothing
 
 			.col-sm-4
-				client-panel(:user="selected")
+				client-panel
 </template>
 
 <script>
@@ -52,7 +57,13 @@
 		}
 	})
 	export default class Clients extends Vue {
-		selected = {}
+		get clients() {
+			return this.$store.getters['clients/items']
+		}
+
+		set clients(value) {
+			return this.$store.dispatch('clients/all', value)
+		}
 
 		search = ''
 
@@ -64,13 +75,17 @@
 			{name: '__slot:controls'}
 		]
 
+		select(data) {
+			this.$store.commit('clients/SELECT', data)
+		}
+
 		async destroy(id) {
 			try {
 				await this.$store.dispatch('clients/destroy', id)
 
-				this.$snotify.success('Deleted was successful', 'Try once more!', {timeout: 2000})
-
 				this.$refs.table.refresh()
+
+				this.$snotify.success('Deleted was successful', 'Try once more!', {timeout: 2000})
 			} catch (e) {
 				this.$snotify.error('Something is wrong', 'Try reload the page', {timeout: 4000, pauseOnHover: true})
 			}

@@ -2,6 +2,9 @@ const eventNames = ['webkitAnimationEnd', 'mozAnimationEnd', 'MSAnimationEnd', '
 
 export default {
 	update(el, binding) {
+		if (binding.value && binding.value === binding.oldValue) {
+			return
+		}
 		/**
 		 * reset previous animation
 		 */

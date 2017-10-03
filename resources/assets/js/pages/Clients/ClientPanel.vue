@@ -1,5 +1,5 @@
 <template lang="pug">
-	.ibox(v-show="hasUser"): .ibox-content(v-animate:fadeInRight="user")
+	.ibox(v-show="hasUser"): .ibox-content(v-animate:fadeInRight="user.id")
 		.tab-content
 			#contact-1.tab-pane.active
 				.row.m-b-lg
@@ -45,19 +45,20 @@
 	import Component from 'vue-class-component'
 	import Vue from 'vue'
 
-	@Component({
-		props: ['user']
-	})
+	@Component()
 	export default class ClientPanel extends Vue {
+		get user() {
+			return this.$store.getters['clients/selected']
+		}
+
 		get hasUser() {
-			return Object.keys(this.user).length !== 0 || this.user.constructor !== Object
+			return Object.keys(this.user).length
 		}
 
 		async edited(key, value) {
-			let updatedUser = Object.assign({}, this.user)
-			updatedUser[key] = value
+			let temp = Object.assign({}, this.user, {[key]: value})
 
-			await this.$store.dispatch('clients/update', updatedUser)
+			await this.$store.dispatch('clients/updateSelected', temp)
 
 			this.$snotify.success(`You have changed '${key}-field' to '${value}'`, null, {
 				timeout: 2000,

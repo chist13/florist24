@@ -32,7 +32,7 @@
 	import Component from 'vue-class-component'
 	import Vue from 'vue'
 
-	@Component
+	@Component()
 	export default class ClientModal extends Vue {
 		user = {
 			name: '',

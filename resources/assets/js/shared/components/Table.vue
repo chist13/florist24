@@ -15,22 +15,31 @@
 
 							th(v-else="") {{ field.title }}
 
-				transition-group(:name='transition', tag='tbody')
-					tr(v-for='(item, index) in tableData', :key='item.id || index')
+				transition-group(:name='transition' tag='tbody')
+					tr(v-for='(item, index) in tableData' :key='item.id || index')
 
 						td(v-for='field in tableFields')
 
 							template(v-if="field.name.startsWith('__slot:')")
-								slot(:name="field.name.split(':')[1]", :item='item')
+								slot(:name="field.name.split(':')[1]" :item='item')
 
 							template(v-else='') {{ item[field.name] }}
 
-		pagination(
-			v-if="hasPagination"
-			ref="pagination"
-			:meta="tableMeta"
-			@pageChanged="pageChanged"
-		)
+		div(v-if="hasPagination").d-flex
+			info(
+				v-if="showInfo"
+				ref="info"
+				:meta="tableMeta"
+				style="margin-right: auto"
+			)
+
+			pagination(
+				ref="pagination"
+				:visible="visible"
+				:meta="tableMeta"
+				style="margin-left: auto"
+				@pageChanged="pageChanged"
+			)
 </template>
 
 <script>
@@ -38,52 +47,47 @@
 	import Vue from 'vue'
 
 	import Pagination from './TablePagination'
-
-	import debounce from 'lodash/debounce'
+	import Info from './TableInfo'
 
 	@Component({
 		props: {
+			value: {required: true, type: [Array, Object]},
 			fields: {required: true, type: Array},
-			store: {required: true},
-			params: {default: {q: ''}, type: Object},
+
+			search: {default: '', type: String},
+
 			transition: {default: 'list'},
-			storePath: {default: 'all'},
-			resourcePath: {default: 'items'},
+
 			dataPath: {default: 'data'},
 			metaPath: {default: 'meta'},
-			pagination: {default: true, type: Boolean}
+
+			showInfo: {default: true, type: Boolean},
+			pagination: {default: true, type: Boolean},
+			visible: {default: 3}
 		},
 		components: {
-			'pagination': Pagination
+			'pagination': Pagination,
+			'info': Info
 		},
 		watch: {
-			params: {
-				deep: true,
-				handler(val, oldval) {
-					// if value didn't change we wouldn't update data
-					if (JSON.stringify(val) !== JSON.stringify(oldval))
-						this.debouncedUpdate()
-				}
+			search(val) {
+				this.update()
 			}
 		}
 	})
 	export default class MyTable extends Vue {
 		tableFields = []
 
-		debouncedUpdate = null
+		loaded = false
 
 		sortParam = null
 
-		get resource() {
-			return this.$store.getters[`${this.store}/${this.resourcePath}`]
-		}
-
 		get tableData() {
-			return this.resource[this.dataPath]
+			return this.dataPath === '' ? this.value : this.value[this.dataPath]
 		}
 
 		get tableMeta() {
-			return this.resource[this.metaPath]
+			return this.metaPath === '' ? this.value : this.value[this.metaPath]
 		}
 
 		get hasPagination() {
@@ -97,18 +101,34 @@
 		 * can accept props like - {page: 5}
 		 */
 		update(props = {}) {
-			(this.sortParam != null) && (props.sort = this.sortParam)
+			if (this.search) {
+				props['q'] = this.search
+			}
 
-			Object.assign(props, this.params)
+			if (this.sortParam) {
+				props['sort'] = this.sortParam
+			}
 
-			this.$store.dispatch(`${this.store}/${this.storePath}`, props)
+			this.$emit('input', props)
 		}
 
 		/**
 		 * update witout changing the page
 		 */
 		refresh() {
-			this.update({page: this.$refs.pagination.current})
+			let props = {page: this.$refs.pagination && this.$refs.pagination.current}
+
+			// if table has no pagination THEM update = refresh
+			if (props.page == null) {
+				props = {}
+			}
+
+			// if table is empty and has prev page THEM redirect to prev page
+			if (this.tableData.length === 0 && props.page > 1) {
+				props.page--
+			}
+
+			this.update(props)
 		}
 
 		/**
@@ -134,8 +154,7 @@
 		 * vue's livecycle hook
 		 *
 		 * transforms $prop.fields to certain form
-		 * creates a debounces dispatch for limiting ajax requests
-		 * the first dispatch to store to get data
+		 * and update
 		 */
 		created() {
 			this.tableFields = this.fields.map(e => {
@@ -145,8 +164,6 @@
 				this.$set(e, 'sort', '')
 				return e
 			})
-
-			this.debouncedUpdate = debounce(this.update.bind(this), 600)
 
 			this.update()
 		}
@@ -173,4 +190,7 @@
 		display: flex
 		justify-content: space-between
 		align-items: center
+
+	.d-flex
+		display: flex
 </style>

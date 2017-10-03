@@ -21,7 +21,7 @@
              height: initial;
         }
 
-        .list-enter-active, .list-leave-active {
+        .list-enter-active {
             transition: all .4s;
         }
         .list-enter {
